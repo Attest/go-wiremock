@@ -11,7 +11,11 @@ import (
 const (
 	wiremockAdminURN         = "__admin"
 	wiremockAdminMappingsURN = "__admin/mappings"
+	wiremockAdminFindURN     = "__admin/requests/find"
 )
+
+// Requests represents requests that WireMock has received.
+type Requests []map[string]interface{}
 
 // A Client implements requests to the wiremock server.
 type Client struct {
@@ -46,6 +50,36 @@ func (c *Client) StubFor(stubRule *StubRule) error {
 	}
 
 	return nil
+}
+
+// FindFor finds requests that were made matching req
+func (c *Client) FindRequestsFor(req *Request) (Requests, error) {
+	jsonRequest, err := json.Marshal(req)
+
+	if err != nil {
+		return Requests{}, fmt.Errorf("build find request error: %w", err)
+	}
+
+	requestURL := fmt.Sprintf("%s/%s", c.url, wiremockAdminFindURN)
+	res, err := http.Post(requestURL, "application/json", bytes.NewBuffer(jsonRequest))
+	if err != nil {
+		return Requests{}, fmt.Errorf("find request error: %w", err)
+	}
+	defer res.Body.Close()
+
+	if statusCode := res.StatusCode; statusCode != http.StatusOK {
+		return Requests{}, fmt.Errorf("expected 200 OK response, got: %d", statusCode)
+	}
+
+	var findResponse struct {
+		Requests Requests
+	}
+	err = json.NewDecoder(res.Body).Decode(&findResponse)
+	if err != nil {
+		return Requests{}, fmt.Errorf("decoding find results: %w", err)
+	}
+
+	return findResponse.Requests, nil
 }
 
 // Clear deletes all stub mappings.
