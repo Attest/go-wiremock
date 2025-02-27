@@ -1,0 +1,5 @@
+# This file designates team ownership for all files in the repo.
+# https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# Multiple teams can be specified in a single line, separated by spaces.
+
+* @Attest/audience-accounts
